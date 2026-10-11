@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang='en' class=''>
+
+<head>
+
+  <meta charset='UTF-8'>
+  <title>CodePen Demo</title>
+
+  <meta name="robots" content="noindex">
+
+  <link rel="shortcut icon" type="image/x-icon" href="https://cpwebassets.codepen.io/assets/favicon/favicon-aec34940fbc1a6e787974dcd360f2c6b63348d4b1f4e06c77743096d55480f33.ico">
+  <link rel="mask-icon" href="https://cpwebassets.codepen.io/assets/favicon/logo-pin-b4b4269c16397ad2f0f7a01bcdf513a1994f4c94b8af2f191c09eb0d601762b1.svg" color="#111">
+  <link rel="canonical" href="https://codepen.io/pen">
+
+  
+  
+
+  <style id="INLINE_PEN_STYLESHEET_ID">
+    
+  </style>
+
+  
+<script src="https://cpwebassets.codepen.io/assets/common/stopExecutionOnTimeout-f07739098a39bd4e74ddd974652dac904146f33fdc1ecab356e8c809a05faccb.js"></script>
+<script src="https://cpwebassets.codepen.io/assets/editor/iframe/iframeConsoleRunner-100b2a29d7a68d0f5c9eb0b3f9e63783410ea00dcab106def20a0ab3cf4a8804.js"></script>
+<script src="https://cpwebassets.codepen.io/assets/editor/iframe/iframeRuntimeErrors-4f205f2c14e769b448bcf477de2938c681660d5038bc464e3700256713ebe261.js"></script>
+</head>
+
+<body>
+  <!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>TV en ligne</title>
+    <style>
+      body { margin: 0; background: black; overflow: hidden; }
+      #tvPlayer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; object-fit: cover; }
+      #overlay {
+        position: fixed; bottom: 30px; left: 30px; color: white; font-family: Arial, sans-serif;
+        z-index: 1000; background: rgba(0,0,0,0.7); padding: 14px 22px; border-radius: 12px;
+        transition: opacity 0.5s; max-width: 420px;
+      }
+      #overlay.hidden { opacity: 0; pointer-events: none; }
+      #currentChannel { font-size: 22px; margin-bottom: 8px; text-shadow: 2px 2px 4px black; font-weight: bold; }
+      #channelLogo { width: 160px; height: auto; display: block; margin-bottom: 10px; }
+      #epgNow {
+        margin-top: 6px;
+        font-size: 15px;
+        color: #fff;
+        line-height: 1.4;
+      }
+      #epgNow .epg-time {
+        color: #ffd700;
+        font-weight: bold;
+        font-size: 13px;
+      }
+      #epgNow .epg-title {
+        font-size: 16px;
+        font-weight: bold;
+        margin-top: 2px;
+      }
+      #epgNow .epg-desc {
+        font-size: 12px;
+        color: #ccc;
+        margin-top: 4px;
+        max-height: 48px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+      }
+      #epgNext {
+        margin-top: 10px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255,255,255,0.2);
+        font-size: 13px;
+        color: #aaa;
+      }
+      #epgNext .epg-next-label { color: #ffd700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+      #epgNext .epg-next-title { color: #ddd; font-weight: bold; }
+      #epgNext .epg-next-time { color: #ffd700; }
+    </style>
+  </head>
+  <body>
+    <video id="tvPlayer" autoplay></video>
+
+    <div id="overlay">
+      <div id="currentChannel">Tapez un numéro de chaîne</div>
+      <img id="channelLogo" src="" alt="Logo de la chaîne" />
+      <div id="epgNow"></div>
+      <div id="epgNext"></div>
+    </div>
+
+    <script>
+      const epgChannelIds = {
+        "1":   443174,
+        "2":   55812,
+        "3":   55715,
+        "4":   459189,
+        "5":   54935,
+        "6":   485681,
+        "7":   55730,
+        "10":  516373,
+        "11":  516392,
+        "12":  516379,
+        "15":  521259,
+        "14":  459259,
+        "13":  459192,
+        "17":  516393,
+        "18":  516384,
+        "33":  448567,
+        "34":  516420,
+        "35":  459252,
+        "36":  516425,
+        "37":  459273,
+        "38":  516387,
+        "59":  459284,
+        "63":  459178,
+        "79":  459179,
+        "80":  443171,
+        "83":  443208,
+        "84":  443177,
+        "89":  55815,
+        "90":  55851,
+        "91":  55777,
+        "92":  55905,
+        "95":  54986,
+        "96":  54996,
+        "97":  443110,
+        "98":  459217,
+        "127": 53891,
+        "129": 54916,
+        "147": 55005,
+        "148": 55873,
+        "161": 51767,
+        "162": 443114,
+        "163": 459208,
+        "164": 403215,
+        "165": 448577,
+        "166": 55716,
+        "167": 52000,
+        "170": 55992,
+        "171": 55723,
+        "44":  54887,
+        "45":  55769,
+        "51":  516367,
+        "52":  51905,
+        "53":  448585,
+        "54":  443096,
+        "55":  459269,
+        "56":  53970,
+        "57":  66912,
+        "66":  55773,
+        "67":  443147,
+        "68":  54963,
+        "69":  444724,
+        "70":  444725,
+        "73":  55799,
+        "74":  55906,
+        "75":  55941,
+        "111": 459258,
+        "112": 516385,
+        "113": 516369,
+        "114": 516370,
+        "117": 56041,
+        "118": 459200,
+        "119": 51894,
+        "120": 443233,
+        "121": 55742,
+        "122": 459274,
+        "123": 55889,
+        "124": 443097,
+        "125": 448559,
+        "126": 55857,
+        "131": 516396,
+        "133": 53883,
+        "134": 443107,
+        "135": 423687,
+        "136": 89907,
+        "137": 459238,
+        "138": 516421,
+        "141": 443250,
+        "142": 55732,
+        "143": 56003,
+        "144": 56008,
+        "146": 443252,
+        "152": 55718,
+        "153": 55950,
+        "154": 55856,
+        "156": 54862,
+        "158": 443152,
+        "159": 448598,
+        "160": 459210,
+        "177": 55952,
+        "180": 494423,
+        "181": 516403,
+        "183": 443214,
+        "184": 55944,
+        "186": 55845,
+        "188": 55876,
+        "200": 451926,
+        "201": 55821,
+        "250": 430106
+      };
+
+      const channels = {
+        "1": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/154.m3u8",
+        "2": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/156.m3u8",
+        "3": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/194.m3u8",
+        "4": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/382.m3u8",
+        "5": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/159.m3u8",
+        "6": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/161.m3u8",
+        "7": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/160.m3u8",
+        "10": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/228052.m3u8",
+        "11": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/228053.m3u8",
+        "12": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/243.m3u8",
+        "13": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/383.m3u8",
+        "14": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/665.m3u8",
+        "15": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/9318.m3u8",
+        "17": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/155635.m3u8",
+        "18": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/155635.m3u8",
+        "33": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/1050935.m3u8",
+        "34": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/389.m3u8",
+        "35": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/423.m3u8",
+        "36": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/388.m3u8",
+        "37": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/391.m3u8",
+        "38": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/390.m3u8",
+        "44": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/392.m3u8",
+        "45": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/393.m3u8",
+        "51": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/334.m3u8",
+        "52": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/335.m3u8",
+        "53": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/396.m3u8",
+        "54": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/206.m3u8",
+        "55": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/336.m3u8",
+        "56": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/337.m3u8",
+        "57": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/343.m3u8",
+        "59": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/329.m3u8",
+        "63": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/234.m3u8",
+        "66": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/248.m3u8",
+        "67": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/4341.m3u8",
+        "68": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/250.m3u8",
+        "69": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/239.m3u8",
+        "70": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/257.m3u8",
+        "72": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/236.m3u8",
+        "73": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/238.m3u8",
+        "74": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/2242.m3u8",
+        "75": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/669.m3u8",
+        "76": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/1214031.m3u8",
+        "79": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/235.m3u8",
+        "80": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/340.m3u8",
+        "81": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/460.m3u8",
+        "83": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/167.m3u8",
+        "84": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/341.m3u8",
+        "89": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/204.m3u8",
+        "90": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/331.m3u8",
+        "91": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/366.m3u8",
+        "92": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/169.m3u8",
+        "93": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/1163489.m3u8",
+        "95": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/165.m3u8",
+        "96": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/454.m3u8",
+        "97": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/507.m3u8",
+        "98": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/290.m3u8",
+        "111": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/446.m3u8",
+        "112": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/447.m3u8",
+        "113": "http://mgqwqkch.duperab.xyz:900/live/48TNQ17G/US2F8MTN/448.m3u8",
+        "114": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/458.m3u8",
+        "117": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/449.m3u8",
+        "118": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/456.m3u8",
+        "119": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/457.m3u8",
+        "120": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/440.m3u8",
+        "121": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/442.m3u8",
+        "122": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/452.m3u8",
+        "123": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/451.m3u8",
+        "124": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/450.m3u8",
+        "125": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/19150.m3u8",
+        "126": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/1050927.m3u8",
+        "127": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/171.m3u8",
+        "129": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/453.m3u8",
+        "131": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/509.m3u8",
+        "133": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/520.m3u8",
+        "134": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/510.m3u8",
+        "135": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/552.m3u8",
+        "136": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/551.m3u8",
+        "137": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/522.m3u8",
+        "138": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/523.m3u8",
+        "141": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/513.m3u8",
+        "142": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/518.m3u8",
+        "143": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/519.m3u8",
+        "144": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/514.m3u8",
+        "146": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/521.m3u8",
+        "147": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/158.m3u8",
+        "148": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/565.m3u8",
+        "152": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/570.m3u8",
+        "153": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/572.m3u8",
+        "154": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/339.m3u8",
+        "156": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/525.m3u8",
+        "158": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/1029.m3u8",
+        "159": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/1091640.m3u8",
+        "160": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/298.m3u8",
+        "161": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/291.m3u8",
+        "162": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/294.m3u8",
+        "163": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/292.m3u8",
+        "164": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/286.m3u8",
+        "165": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/293.m3u8",
+        "166": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/289.m3u8",
+        "167": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/287.m3u8",
+        "170": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/185445.m3u8",
+        "171": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/297.m3u8",
+        "177": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/212.m3u8",
+        "180": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/577.m3u8",
+        "181": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/576.m3u8",
+        "183": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/578.m3u8",
+        "184": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/574.m3u8",
+        "186": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/601.m3u8",
+        "188": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/579.m3u8",
+        "200": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/608.m3u8",
+        "201": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/607.m3u8",
+        "231": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/947868.m3u8",
+        "232": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/947867.m3u8",
+        "233": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/947866.m3u8",
+        "234": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/947865.m3u8",
+        "235": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/947864.m3u8",
+        "236": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/947863.m3u8",
+        "237": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/947862.m3u8",
+        "238": "http://mgqwqkch.duperab.xyz:900/live/48TNQ17G/US2F8MTN/401456795.m3u8",
+        "239": "http://mgqwqkch.duperab.xyz:900/live/48TNQ17G/US2F8MTN/401456794.m3u8",
+        "240": "http://mgqwqkch.duperab.xyz:900/live/48TNQ17G/US2F8MTN/401456793.m3u8",
+        "241": "http://mgqwqkch.duperab.xyz:900/live/48TNQ17G/US2F8MTN/401456792.m3u8",
+        "242": "http://mgqwqkch.duperab.xyz:900/live/48TNQ17G/US2F8MTN/401456791.m3u8",
+        "243": "http://mgqwqkch.duperab.xyz:900/live/48TNQ17G/US2F8MTN/401456790.m3u8",
+        "244": "http://mgqwqkch.duperab.xyz:900/live/48TNQ17G/US2F8MTN/401456789.m3u8",
+        "245": "http://mgqwqkch.duperab.xyz:900/live/48TNQ17G/US2F8MTN/401456788.m3u8",
+        "246": "http://mgqwqkch.duperab.xyz:900/live/48TNQ17G/US2F8MTN/401456787.m3u8",
+        "247": "http://mgqwqkch.duperab.xyz:900/live/48TNQ17G/US2F8MTN/401456786.m3u8",
+        "248": "http://mgqwqkch.duperab.xyz:900/live/48TNQ17G/US2F8MTN/401456785.m3u8",
+        "249": "http://mgqwqkch.duperab.xyz:900/live/48TNQ17G/US2F8MTN/401456784.m3u8",
+        "250": "http://mgqwqkch.duperab.xyz:900/live/48TNQ17G/US2F8MTN/603.m3u8",
+        "252": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/925.m3u8",
+        "253": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/924.m3u8",
+        "254": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/923.m3u8",
+        "255": "http://mgqwqkch.duperab.xyz:900/live/48TNQ17G/US2F8MTN/4137.m3u8",
+        "256": "http://mgqwqkch.duperab.xyz:900/live/48TNQ17G/US2F8MTN/4136.m3u8",
+        "257": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/921.m3u8",
+        "258": "http://mgqwqkch.duperab.xyz:900/live/48TNQ17G/US2F8MTN/4134.m3u8",
+        "259": "http://mgqwqkch.duperab.xyz:900/live/48TNQ17G/US2F8MTN/4133.m3u8",
+        "284": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/227.m3u8",
+        "285": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/228.m3u8",
+        "286": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/229.m3u8",
+        "287": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/230.m3u8",
+        "288": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/231.m3u8",
+        "289": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/232.m3u8",
+        "290": "http://mgqwqkch.duperab.xyz/live/48TNQ17G/US2F8MTN/233.m3u8",
+        "600": "http://icecast.radiofrance.fr/franceculture-hifi.aac",
+        "601": "http://icecast.radiofrance.fr/francemusique-hifi.aac",
+        "602": "http://icecast.radiofrance.fr/fip-hifi.aac",
+        "603": "http://icecast.radiofrance.fr/franceinfo-hifi.aac",
+        "604": "http://icecast.radiofrance.fr/franceinter-hifi.aac",
+        "605": "http://direct.francebleu.fr/live/fbprovence-midfi.mp3",
+        "606": "http://icecast.radiofrance.fr/mouv-hifi.aac",
+        "610": "http://europe1.lmn.fm/europe1.mp3",
+        "611": "http://europe2.lmn.fm/europe2.mp3",
+        "612": "http://rfm.lmn.fm/rfm.mp3",
+        "616": "https://streaming.nrjaudio.fm/oumvmk8fnozc?origine=fluxradios",
+        "617": "https://streaming.nrjaudio.fm/ouuku85n3nje?origine=fluxradios",
+        "618": "https://streaming.nrjaudio.fm/ou8o8xgk7oiu?origine=fluxradios",
+        "619": "https://streaming.nrjaudio.fm/oug7girb92oc?origine=fluxradios",
+        "622": "http://ice.creacast.com/sudradio",
+        "623": "http://tsfjazz.ice.infomaniak.ch/tsfjazz-high.mp3",
+        "624": "http://radionova.ice.infomaniak.ch/radionova-256.aac",
+        "628": "http://stream.rcs.revma.com/5a05fstup42vv",
+        "629": "http://jazzradio.ice.infomaniak.ch/jazzradio-high.mp3",
+        "630": "http://icecast.skyrock.net/s/natio_aac_128k",
+        "631": "http://radioclassique.ice.infomaniak.ch/radioclassique-high.mp3"
+      };
+
+      const channelLogos = {
+        "1": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/66746746",
+        "2": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/67032119",
+        "3": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/67033022",
+        "4": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/301/canal-ouah/CHN43FB/CHN43FB_301_29082023",
+        "5": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/67033026",
+        "6": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/313/canal-ouah/CHN43FN/CHN43FN_M6_20220415",
+        "7": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/3932761",
+        "10": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/83/canal-ouah/CHN43FB/CHN43FB_83_29082023",
+        "11": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/19/canal-ouah/CHN43FB/CHN43FB_19_29082023",
+        "12": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/177/canal-ouah/CHN43FB/CHN43FB_177_29082023",
+        "13": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1074/canal-ouah/CHN43FB/CHN43FB_1074_29082023",
+        "14": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/900/canal-ouah/CHN43FB/CHN43FB_900_29082023",
+        "15": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/198/canal-ouah/CHN43FB/CHN43FB_198_29082023",
+        "17": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/899/canal-ouah/CHN43FB/CHN43FB_899_29082023",
+        "18": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/259/canal-ouah/CHN43FB/CHN43FB_259_29082023",
+        "33": "https://thumb.canalplus.pro/http/unsafe/240x180/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/322/canal-ouah/CHN43FB/CHN43FB_322_20240703-x2Gu",
+        "34": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/398/canal-ouah/CHN43FB/CHN43FB_398_20240703-OUDD",
+        "35": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/396/canal-ouah/CHN43FB/CHN43FB_396_20240703-rGn5",
+        "36": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/533/canal-ouah/CHN43FB/CHN43FB_533_20240703-GCQG",
+        "37": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/532/canal-ouah/CHN43FB/CHN43FB_532_20240703-v_Nw",
+        "38": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/531/canal-ouah/CHN43FB/CHN43FB_531_20240703-xihx",
+        "44": "https://thumb.canalplus.pro/http/unsafe/560x314/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/list/creplay_chaine_action_selection167/canal-ouah/TITLELOGO/myCANAL_Logo_Fiche_Programme_1920x108090-LgkU",
+        "45": "https://thumb.canalplus.pro/http/unsafe/epg.canal-plus.com/mycanal/img/CHN43FN/PNG/213X160/CHN43FB_374.PNG",
+        "51": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/61718410",
+        "52": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/19132964",
+        "53": "https://thumb.canalplus.pro/http/unsafe/epg.canal-plus.com/mycanal/img/CHN43FN/PNG/213X160/CHN43FB_694.PNG",
+        "54": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/586/canal-ouah/CHN43FN/CHN43FN_586_20211018",
+        "55": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/50052/canal-ouah/CHN43FN/RTL9_chn43fn",
+        "56": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/611/canal-ouah/CHN43FN/AB1_BLANC_640x480-Fza-",
+        "57": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/91743977",
+        "59": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/66747478",
+        "63": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/37032867",
+        "66": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/48981173",
+        "67": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/48981183",
+        "68": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/48981545",
+        "69": "https://thumb.canalplus.pro/http/unsafe/epg.canal-plus.com/mycanal/img/CHN43FN/PNG/213X160/CHN43FB_101.PNG",
+        "70": "https://thumb.canalplus.pro/bran/unsafe/384x/filters:quality(%7BimageQualityPercentage%7D)/image/5dcec8ec7eae2/uploads/media/EUROSPORT_2.png",
+        "72": "https://thumb.canalplus.pro/bran/unsafe/560x314/filters:quality(80)/image/673dc2f45f3f4/uploads/media/golf.png",
+        "73": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/79159708",
+        "74": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/66127994",
+        "75": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/1080/canal-ouah/CHN43FN/CHN43FN_1080_20240206-go3d",
+        "76": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/1182/canal-ouah/CHN43FN/CHN43FN_1182_20251013-QVcu",
+        "79": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/44863403",
+        "80": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/21549672",
+        "81": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/93985303",
+        "83": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/294/canal-ouah/CHN43FN/CHN43FN__Paris_Premiere_20220415",
+        "84": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/292/canal-ouah/CHN43FN/CHN43FN_292_20211002",
+        "89": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/296/canal-ouah/CHN43FN/CHN43FN_W9_20220415",
+        "90": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/66747568",
+        "91": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/66747551",
+        "92": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/64699011",
+        "93": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/1167/canal-ouah/CHN43FN/CHN43FN_1167_20250606-oUVi",
+        "95": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/521/canal-ouah/CHN43FN/CHN43FN_6TER_20220415",
+        "96": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/571/canal-ouah/CHN43FN/CHN43FN_571_20251217-pHg9",
+        "97": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/440/canal-ouah/CHN43FN/RMCLIFE_ONDARK_640x480-LhJC",
+        "98": "https://thumb.canalplus.pro/http/unsafe/96x72/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/520/canal-ouah/CHN43FN/CHN43FN_520_20251008-YfN8",
+        "111": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/4492627",
+        "112": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/587/canal-ouah/CHN43FN/CHN43FN_587_120122",
+        "113": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/588/canal-ouah/CHN43FN/CHN43FN_588_120122",
+        "114": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/95900535",
+        "117": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/142/canal-ouah/CHN43FN/CHN43FN_142_20211018",
+        "118": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/550/canal-ouah/CHN43FN/CHN43FN_550_20211018",
+        "119": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/25328988",
+        "120": "https://thumb.canalplus.pro/bran/unsafe/352x264/filters:quality(80)/image/66951e193d2a8/uploads/media/TUILES_4x3_1440x1080_Docu.jpg.jpg",
+        "121": "https://thumb.canalplus.pro/bran/unsafe/352x264/filters:quality(80)/image/66951e1e92126/uploads/media/TUILES_4x3_1440x1080_serie.jpg.jpg",
+        "122": "https://thumb.canalplus.pro/bran/unsafe/3840x/filters:quality(%7BimageQualityPercentage%7D)/image/688390f4286ad/uploads/media/SEASONS_.png",
+        "123": "https://thumb.canalplus.pro/http/unsafe/epg.canal-plus.com/mycanal/img/CHN43FN/PNG/213X160/CHN43FB_681.PNG",
+        "124": "https://thumb.canalplus.pro/http/unsafe/epg.canal-plus.com/mycanal/img/CHN43FN/PNG/213X160/CHN43FB_503.PNG",
+        "125": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/1076/canal-ouah/CHN43FN/CHN43FN_1076_20230919",
+        "126": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/1102/canal-ouah/CHN43FN/CHN43FN_1102_20241115-3Ztt",
+        "127": "https://upload.wikimedia.org/wikipedia/fr/thumb/6/6a/Logo_8_Mont_Blanc_2015.svg/1200px-Logo_8_Mont_Blanc_2015.svg.png",
+        "129": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/595/canal-ouah/CHN43FN/CHN43FN_595_20251217-j8Gg",
+        "131": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/21549720",
+        "133": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/593/canal-ouah/CHN43FN/CHN43FN_593_20240205-D3YF",
+        "134": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/41072706",
+        "135": "https://thumb.canalplus.pro/bran/unsafe/3840x/filters:quality(%7BimageQualityPercentage%7D)/image/68837ff96a5c1/uploads/media/CARTOONITO.png",
+        "136": "https://thumb.canalplus.pro/bran/unsafe/3840x/filters:quality(%7BimageQualityPercentage%7D)/image/68837f3d3c3d9/uploads/media/BOOMRANG.png",
+        "137": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/21549725",
+        "138": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/21549726",
+        "141": "https://thumb.canalplus.pro/bran/unsafe/3840x/filters:quality(%7BimageQualityPercentage%7D)/image/68837fe10c457/uploads/media/CARTOON_NETWORK.png",
+        "142": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/591/canal-ouah/CHN43FN/CHN43FN_591_20240806-VOLC",
+        "143": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/44924953",
+        "144": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/91743730",
+        "146": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/518/canal-ouah/CHN43FN/CHN43FN_518_20251507-CYam",
+        "147": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/67033024",
+        "148": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/549/canal-ouah/CHN43FN/CHN43FN_40067_20230829",
+        "152": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/20482724",
+        "153": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/62364389",
+        "154": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/92490208",
+        "156": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/613/canal-ouah/CHN43FN/CHN43FN_40025_20220711",
+        "158": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/819/canal-ouah/CHN43FN/CHN43FN_819_20220127",
+        "159": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Warner_TV_Next_logo.png/330px-Warner_TV_Next_logo.png",
+        "160": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/21549692",
+        "161": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/64698936",
+        "162": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/633/canal-ouah/CHN43FN/CHN43FN_633_20230419",
+        "163": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/66747521",
+        "164": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/41072782",
+        "165": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/94033640",
+        "166": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/18810794",
+        "167": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/324/canal-ouah/CHN43FN/EURONEWS2023_myCANAL_640x480",
+        "170": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/CNN.svg/langfr-330px-CNN.svg.png",
+        "171": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/54239635",
+        "177": "https://upload.wikimedia.org/wikipedia/commons/7/7a/KTO_télévision_catholique_-_logo_2022.png",
+        "180": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/723/canal-ouah/CHN43FN/CHN43FN_723_20251001-IXnV",
+        "181": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/352/canal-ouah/CHN43FN/CHN43FN_M6_Music_20220415",
+        "183": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/21549710",
+        "184": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/canalplus-cdn.canal-plus.io/p1/channel/585/canal-ouah/CHN43FN/CHN43FN_585_20230208",
+        "186": "https://thumb.canalplus.pro/http/unsafe/202x152/filters:quality(80)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/72998764",
+        "188": "https://thumb.canalplus.pro/bran/unsafe/3840x/filters:quality(%7BimageQualityPercentage%7D)/image/68b1abce377df/uploads/media/MELODY.png",
+        "200": "https://thumb.canalplus.pro/bran/unsafe/3840x/filters:quality(%7BimageQualityPercentage%7D)/image/68b1abac2b1a4/uploads/media/MEZZO.png",
+        "201": "https://thumb.canalplus.pro/http/unsafe/epg.canal-plus.com/mycanal/img/CHN43FN/PNG/213X160/CHN43FB_268.PNG",
+        "231": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1135/canal-ouah/CHN43FB/CHN43FB_1135_10092024-NNKZ",
+        "232": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1136/canal-ouah/CHN43FB/CHN43FB_1136_20240910-9f4P",
+        "233": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1137/canal-ouah/CHN43FB/CHN43FB_1137_20240910-oIpK",
+        "234": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1138/canal-ouah/CHN43FB/CHN43FB_1138_20240910-Ejre",
+        "235": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1139/canal-ouah/CHN43FB/CHN43FB_1139_20240910-2Z2M",
+        "236": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1140/canal-ouah/CHN43FB/CHN43FB_1140_20240910-9Csx",
+        "237": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1141/canal-ouah/CHN43FB/CHN43FB_1141_20240910-56u_",
+        "238": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1142/canal-ouah/CHN43FB/CHN43FB_1142_20240910-kFEr",
+        "239": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1143/canal-ouah/CHN43FB/CHN43FB_1143_20240910-vvez",
+        "240": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1144/canal-ouah/CHN43FB/CHN43FB_1144_20240910-_8oo",
+        "241": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1145/canal-ouah/CHN43FB/CHN43FB_1145_20240910-x1TP",
+        "242": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1146/canal-ouah/CHN43FB/CHN43FB_1146_20240910-40D_",
+        "243": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1147/canal-ouah/CHN43FB/CHN43FB_1147_20240910-Ip9r",
+        "244": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1148/canal-ouah/CHN43FB/CHN43FB_1148_20240910-ulgW",
+        "245": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1149/canal-ouah/CHN43FB/CHN43FB_1149_20240910-Ga-Z",
+        "246": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1150/canal-ouah/CHN43FB/CHN43FB_1150_20240910-K1Su",
+        "247": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1151/canal-ouah/CHN43FB/CHN43FB_1151_20240910-H0Di",
+        "248": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/canalplus-cdn.canal-plus.io/p1/channel/1152/canal-ouah/CHN43FB/CHN43FB_1152_20240910-Fmmk",
+        "250": "https://upload.wikimedia.org/wikipedia/fr/e/e0/C%2BPremier_League.png",
+        "252": "https://cms.jibecdn.com/prod/discovery1-eurosport/assets/HEADER-NAV_LOGO-en-us-1621935515504.png",
+        "253": "https://cms.jibecdn.com/prod/discovery1-eurosport/assets/HEADER-NAV_LOGO-en-us-1621935515504.png",
+        "254": "https://cms.jibecdn.com/prod/discovery1-eurosport/assets/HEADER-NAV_LOGO-en-us-1621935515504.png",
+        "255": "https://cms.jibecdn.com/prod/discovery1-eurosport/assets/HEADER-NAV_LOGO-en-us-1621935515504.png",
+        "256": "https://cms.jibecdn.com/prod/discovery1-eurosport/assets/HEADER-NAV_LOGO-en-us-1621935515504.png",
+        "257": "https://cms.jibecdn.com/prod/discovery1-eurosport/assets/HEADER-NAV_LOGO-en-us-1621935515504.png",
+        "258": "https://cms.jibecdn.com/prod/discovery1-eurosport/assets/HEADER-NAV_LOGO-en-us-1621935515504.png",
+        "259": "https://cms.jibecdn.com/prod/discovery1-eurosport/assets/HEADER-NAV_LOGO-en-us-1621935515504.png",
+        "284": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/48980059",
+        "285": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/48980061",
+        "286": "https://thumb.canalplus.pro/http/unsafe/0x0/smart/filters:quality(100)/warehouse.canal-overseas.com/channel/0001/54/871325631fa4114951b553a3896d88e6fca9732f.png",
+        "287": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/48980065",
+        "288": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/48980071",
+        "289": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/48980073",
+        "290": "https://thumb.canalplus.pro/http/unsafe/204x/filters:quality(%7BimageQualityPercentage%7D)/img-hapi.canalplus.pro:80/ServiceImage/ImageID/48980075",
+        "600": "https://upload.wikimedia.org/wikipedia/commons/d/d6/France_Culture_logo_2021.svg",
+        "601": "https://upload.wikimedia.org/wikipedia/commons/6/6c/France_Musique_logo_2021.svg",
+        "602": "https://upload.wikimedia.org/wikipedia/commons/1/16/FIP_logo_2021.svg",
+        "603": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/France_Info_-_2008.svg/3840px-France_Info_-_2008.svg.png",
+        "604": "https://upload.wikimedia.org/wikipedia/commons/a/a0/France_Inter_logo_2021.svg",
+        "605": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Logo_ICI_par_France_Bleu_et_France_3.svg/1920px-Logo_ICI_par_France_Bleu_et_France_3.svg.png",
+        "606": "https://yt3.googleusercontent.com/J1vuk1x7BSg7Tl84P0wQ_jRM3tefm_y7DispCY9l4yDUQPXHSxrRLyMG_eFKlAThvkkwA3jW=s900-c-k-c0x00ffffff-no-rj",
+        "610": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Europe1_FLAT.png",
+        "611": "https://www.europe2.fr/wp-content/themes/melty/europeradio/assets/images/header_logo_v2.svg",
+        "612": "https://upload.wikimedia.org/wikipedia/fr/thumb/a/ac/Rfm-2011.svg/1280px-Rfm-2011.svg.png",
+        "616": "https://www.nrjglobal.com/wp-content/uploads/2025/10/marque_white_nrj.svg",
+        "617": "https://www.nrjglobal.com/wp-content/uploads/2020/12/logo-cheriefm-blanc.png",
+        "618": "https://www.nrjglobal.com/wp-content/uploads/2020/08/marque_white_rc.png",
+        "619": "https://www.nrjglobal.com/wp-content/uploads/2025/10/Nostalgie-logo-1.png",
+        "622": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Logo_Sud_Radio_2014.svg/1280px-Logo_Sud_Radio_2014.svg.png",
+        "623": "https://upload.wikimedia.org/wikipedia/commons/c/cd/TSFJazz-2017.jpg",
+        "624": "https://yt3.googleusercontent.com/ssU9iB0y0nYP25QIFhn1laBF51ehsRZkbP7MReTJuAvGoIB7oy5ssay8GoQHlwrzSvqWKain=s900-c-k-c0x00ffffff-no-rj",
+        "628": "https://upload.wikimedia.org/wikipedia/commons/4/4f/Melody_logo_2013.png",
+        "629": "https://myradioendirect.fr/public/uploads/radio_img/jazz-radio/fb_cover.jpg",
+        "630": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/SKYROCK_FM_LOGO.svg/langfr-500px-SKYROCK_FM_LOGO.svg.png",
+        "631": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Logo_Radio_Classique.svg/3840px-Logo_Radio_Classique.svg.png"
+      };
+
+      const epgCache = {};
+
+      function formatTime(dateStr) {
+        const d = new Date(dateStr);
+        return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      }
+
+      function getTodayDate() {
+        const now = new Date();
+        return now.getFullYear().toString()
+          + String(now.getMonth() + 1).padStart(2, '0')
+          + String(now.getDate()).padStart(2, '0');
+      }
+
+      async function fetchEPG(channelNum) {
+        const epgId = epgChannelIds[channelNum];
+        if (!epgId) return null;
+        const cacheKey = epgId + '_' + getTodayDate();
+        if (epgCache[cacheKey]) return epgCache[cacheKey];
+        try {
+          const date = getTodayDate();
+          const url = `https://epg.pw/api/epg.json?lang=fr&date=${date}&channel_id=${epgId}`;
+          const resp = await fetch(url);
+          if (!resp.ok) return null;
+          const data = await resp.json();
+          epgCache[cacheKey] = data;
+          return data;
+        } catch(e) {
+          return null;
+        }
+      }
+
+      function getCurrentAndNext(epgData) {
+        if (!epgData || !epgData.epg_list || epgData.epg_list.length === 0) return { now: null, next: null };
+        const now = new Date();
+        let current = null;
+        let next = null;
+        for (let i = 0; i < epgData.epg_list.length; i++) {
+          const prog = epgData.epg_list[i];
+          const start = new Date(prog.start_date);
+          const nextProg = epgData.epg_list[i + 1];
+          const end = nextProg ? new Date(nextProg.start_date) : new Date(now.getTime() + 3600000);
+          if (start <= now && now < end) {
+            current = { ...prog, end_date: end };
+            next = nextProg || null;
+            break;
+          }
+        }
+        return { now: current, next };
+      }
+
+      async function updateEPGDisplay(channelNum) {
+        const nowDiv = document.getElementById('epgNow');
+        const nextDiv = document.getElementById('epgNext');
+        nowDiv.innerHTML = '';
+        nextDiv.innerHTML = '';
+        const data = await fetchEPG(channelNum);
+        if (!data) return;
+        const { now: current, next } = getCurrentAndNext(data);
+        if (current) {
+          const start = new Date(current.start_date);
+          const end = new Date(current.end_date);
+          const nowT = new Date();
+          const pct = Math.min(100, Math.max(0, ((nowT - start) / (end - start)) * 100)).toFixed(0);
+          nowDiv.innerHTML = `
+            <div class="epg-time">▶ ${formatTime(current.start_date)} – ${formatTime(end)}</div>
+            <div class="epg-title">${current.title}</div>
+            ${current.desc ? `<div class="epg-desc">${current.desc}</div>` : ''}
+            <div style="margin-top:6px;height:3px;background:rgba(255,255,255,0.2);border-radius:2px;">
+              <div style="width:${pct}%;height:3px;background:#ffd700;border-radius:2px;"></div>
+            </div>
+          `;
+        }
+        if (next) {
+          nextDiv.innerHTML = `
+            <div class="epg-next-label">Ensuite</div>
+            <span class="epg-next-time">${formatTime(next.start_date)}</span>
+            <span class="epg-next-title"> · ${next.title}</span>
+          `;
+        }
+      }
+
+      let inputNumber = "";
+      let timeout = null;
+      let overlayTimer = null;
+      const channelKeys = Object.keys(channels).sort((a, b) => parseInt(a) - parseInt(b));
+      let currentIndex = 0;
+      const player = document.getElementById("tvPlayer");
+
+      function showOverlay() {
+        const overlay = document.getElementById("overlay");
+        overlay.classList.remove("hidden");
+        if (overlayTimer) clearTimeout(overlayTimer);
+        overlayTimer = setTimeout(() => overlay.classList.add("hidden"), 7000);
+      }
+
+      function playChannelByIndex(index) {
+        const key = channelKeys[index];
+        const url = channels[key];
+        player.src = url;
+        player.play().catch(() => {});
+        currentIndex = index;
+        document.getElementById("currentChannel").innerText = "Chaîne " + key;
+        document.getElementById("channelLogo").src = channelLogos[key] || "";
+        document.getElementById("epgNow").innerHTML = '<div style="color:#aaa;font-size:13px;">Chargement du programme…</div>';
+        document.getElementById("epgNext").innerHTML = '';
+        showOverlay();
+        updateEPGDisplay(key);
+      }
+
+      function restartChannel() {
+        if (currentIndex != null) {
+          const key = channelKeys[currentIndex];
+          player.src = channels[key];
+          player.play().catch(() => {});
+        }
+      }
+
+      player.addEventListener('error', restartChannel);
+
+      let lastTime = 0;
+      setInterval(() => {
+        if (!player.paused && player.readyState > 0) {
+          if (player.currentTime === lastTime) { restartChannel(); }
+          lastTime = player.currentTime;
+        }
+      }, 5000);
+
+      setInterval(() => {
+        const key = channelKeys[currentIndex];
+        if (key) updateEPGDisplay(key);
+      }, 60000);
+
+      document.addEventListener('keydown', (event) => {
+        const key = event.key;
+        if (/[0-9]/.test(key)) {
+          inputNumber += key;
+          document.getElementById("currentChannel").innerText = "Numéro saisi: " + inputNumber;
+          showOverlay();
+          if (timeout) clearTimeout(timeout);
+          timeout = setTimeout(() => {
+            if (channels[inputNumber]) {
+              const index = channelKeys.indexOf(inputNumber);
+              playChannelByIndex(index);
+            } else {
+              document.getElementById("currentChannel").innerText = "Chaîne inexistante: " + inputNumber;
+              document.getElementById("channelLogo").src = "";
+              document.getElementById("epgNow").innerHTML = '';
+              document.getElementById("epgNext").innerHTML = '';
+            }
+            inputNumber = "";
+          }, 500);
+        }
+        if (key === "ArrowRight") playChannelByIndex((currentIndex + 1) % channelKeys.length);
+        if (key === "ArrowLeft") playChannelByIndex((currentIndex - 1 + channelKeys.length) % channelKeys.length);
+        if (key === "Escape") {
+          inputNumber = "";
+          document.getElementById("currentChannel").innerText = "Tapez un numéro de chaîne";
+          document.getElementById("channelLogo").src = "";
+          document.getElementById("epgNow").innerHTML = '';
+          document.getElementById("epgNext").innerHTML = '';
+          if (timeout) clearTimeout(timeout);
+          showOverlay();
+        }
+      });
+
+      playChannelByIndex(currentIndex);
+    </script>
+  </body>
+</html>
+  
+  
+</body>
+
+</html>
