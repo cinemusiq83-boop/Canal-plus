@@ -2,7 +2,7 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <title>TV en ligne</title>
+    <title>Canal Plus</title>
     <style>
       @font-face {
         font-family: 'Canal';
@@ -247,7 +247,33 @@
         "188": 55876,
         "200": 451926,
         "201": 55821,
-        "250": 430106
+        "250": 430106,
+        "231": 557578,
+        "232": 557559,
+        "233": 557572,
+        "234": 557553,
+        "235": 557574,
+        "236": 557568,
+        "237": 557576,
+        "238": 557570,
+        "239": 557579,
+        "240": 557563,
+        "241": 557577,
+        "242": 557575,
+        "243": 557569,
+        "244": 557566,
+        "245": 557556,
+        "246": 557550,
+        "247": 557571,
+        "248": 557562,
+        "72": 538282,
+        "284": 443239,
+        "285": 443103,
+        "286": 55982,
+        "287": 55920,
+        "288": 443213,
+        "289": 55983,
+        "290": 443150
       };
 
       const channels = {
@@ -684,7 +710,11 @@
           tEnd.textContent = formatTime(end);
           tNow.textContent = formatTime(nowT);
           tNow.style.left = pct + '%';
-          tNow.style.visibility = (pct < 7 || pct > 93) ? 'hidden' : 'visible';
+          tNow.style.visibility = 'visible';
+          // Masque l'heure qui avance dès qu'elle touche l'heure de début ou de fin
+          const rn = tNow.getBoundingClientRect(), rs = tStart.getBoundingClientRect(), re = tEnd.getBoundingClientRect();
+          const gap = 12;
+          if (rn.right + gap > re.left || rn.left - gap < rs.right) tNow.style.visibility = 'hidden';
           elProgress.classList.remove('empty');
         }
         if (panelMode === 'info' || panelMode === 'next') renderPanel();
